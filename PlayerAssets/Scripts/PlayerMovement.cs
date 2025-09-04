@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// A script for handling player movement and collision response in a top-down 2D game.
+/// A script for handling player movement, collision response, and a simple shooting mechanic in a top-down 2D game.
 /// This script uses Unity's new Input System for player input.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(PlayerInput))]
@@ -15,9 +15,16 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("The force applied when the player collides with an object.")]
     public float pushForce = 10f;
 
+    [Tooltip("A Transform representing the position from which projectiles are fired.")]
+    public Transform gunTransform;
+
+    [Tooltip("The maximum distance the raycast can travel.")]
+    public float shootingDistance = 20f;
+
     // Private variables to store component references and input values.
     private Rigidbody2D rb;
     private Vector2 movementInput;
+    private Vector2 lookInput;
 
     /// <summary>
     /// Called when the script instance is being loaded.
@@ -35,8 +42,7 @@ public class PlayerMovement : MonoBehaviour
         if (rb != null)
         {
             rb.gravityScale = 0f;
-            // Freeze the rotation of the Rigidbody2D to prevent it from spinning on collision.
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            // The constraints were preventing manual rotation. We will now handle rotation directly on the Rigidbody2D.
         }
     }
 
@@ -50,16 +56,60 @@ public class PlayerMovement : MonoBehaviour
         // Read the 2D vector input (e.g., from WASD or a joystick)
         movementInput = value.Get<Vector2>();
     }
+    
+    /// <summary>
+    /// This method is called by the new Input System when the look action is triggered.
+    /// It reads the mouse position from the input system.
+    /// </summary>
+    /// <param name="value">The input value from the Input System.</param>
+
+    /// <summary>
+    /// This method is called by the new Input System when the shoot action is triggered.
+    /// It performs a Raycast2D from the gun's position.
+    /// </summary>
+    /// <param name="value">The input value from the Input System.</param>
+    public void OnFire(InputValue value)
+    {
+        // Get the starting position for the raycast. Use the gunTransform if it's assigned.
+        Vector2 raycastOrigin = (gunTransform != null) ? (Vector2)gunTransform.position : (Vector2)transform.position;
+
+        // The direction for the raycast is the player's current "up" direction.
+        Vector2 raycastDirection = transform.up;
+
+        // Perform the raycast.
+        RaycastHit2D hit = Physics2D.Raycast(raycastOrigin, raycastDirection, shootingDistance);
+
+        // Check if the raycast hit anything.
+        if (hit.collider != null)
+        {
+            // If it hit something, draw a red line to the point of collision.
+            Debug.DrawLine(raycastOrigin, hit.point, Color.red, 2f);
+            Debug.Log("Raycast hit: " + hit.collider.name);
+        }
+        else
+        {
+            // If it didn't hit anything, draw a blue line to the end of the raycast distance.
+            Debug.DrawLine(raycastOrigin, raycastOrigin + raycastDirection * shootingDistance, Color.blue, 2f);
+            Debug.Log("Raycast did not hit anything.");
+        }
+    }
 
     /// <summary>
     /// FixedUpdate is called at a fixed interval and is used for physics calculations.
-    /// We apply movement here to ensure it's consistent regardless of frame rate.
+    /// We apply movement and rotation here to ensure it's consistent regardless of frame rate.
     /// </summary>
     private void FixedUpdate()
     {
         // Calculate the new velocity based on input and speed.
-        // We multiply by Time.fixedDeltaTime to make movement frame-rate independent.
         rb.linearVelocity = movementInput * speed;
+
+        // Rotate the player to face the mouse position.
+        Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+        Vector3 directionToMouse = mousePositionInWorld - transform.position;
+        float angle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg - 90f;
+        
+        // Use the Rigidbody2D's rotation property for smooth, physics-aware rotation.
+        rb.rotation = angle;
     }
 
     /// <summary>
