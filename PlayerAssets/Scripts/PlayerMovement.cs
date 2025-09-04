@@ -44,6 +44,9 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("The maximum distance the raycast can travel.")]
     public float shootingDistance = 20f;
 
+    [Tooltip("The prefab for the bullet hole decal to be instantiated.")]
+    public GameObject bulletHolePrefab;
+
     // Private variables to store component references and input values.
     private Rigidbody2D rb;
     private Vector2 movementInput;
@@ -103,6 +106,23 @@ public class PlayerMovement : MonoBehaviour
             // If it hit something, draw a red line to the point of collision.
             Debug.DrawLine(raycastOrigin, hit.point, Color.red, 2f);
             Debug.Log("Raycast hit: " + hit.collider.name);
+
+            // Bullet hole decal instantiation logic
+            if (bulletHolePrefab != null)
+            {
+                Transform hitTransform = hit.transform;
+                // Check the number of children on the hit object.
+                if (hitTransform.childCount >= 3)
+                {
+                    // Destroy the oldest bullet hole (the first child).
+                    Destroy(hitTransform.GetChild(0).gameObject);
+                }
+
+                // Instantiate the bullet hole decal at the hit point.
+                GameObject hole = Instantiate(bulletHolePrefab, hit.point, Quaternion.identity);
+                // Make the bullet hole a child of the hit object so it moves with it.
+                hole.transform.parent = hitTransform;
+            }
         }
         else
         {
