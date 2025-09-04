@@ -2,12 +2,35 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
+/// A serializable class to hold all player statistics.
+/// [System.Serializable] allows this class to be shown and edited in the Unity Inspector.
+/// </summary>
+[System.Serializable]
+public class PlayerStats
+{
+    [Tooltip("The player's current health.")]
+    public int health = 100;
+
+    [Tooltip("The player's maximum health.")]
+    public int maxHealth = 100;
+
+    // You can add more stats here later, such as:
+    // public int experience;
+    // public int gold;
+    // public float damageMultiplier;
+}
+
+/// <summary>
 /// A script for handling player movement, collision response, and a simple shooting mechanic in a top-down 2D game.
 /// This script uses Unity's new Input System for player input.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(PlayerInput))]
 public class PlayerMovement : MonoBehaviour
 {
+    // A public variable to expose the PlayerStats class in the Inspector.
+    [Tooltip("Container for all player statistics like health, etc.")]
+    public PlayerStats playerStats;
+
     // Public variables for tweaking movement in the Unity Inspector.
     [Tooltip("The speed at which the player moves.")]
     public float speed = 5f;
@@ -24,7 +47,6 @@ public class PlayerMovement : MonoBehaviour
     // Private variables to store component references and input values.
     private Rigidbody2D rb;
     private Vector2 movementInput;
-    private Vector2 lookInput;
 
     /// <summary>
     /// Called when the script instance is being loaded.
@@ -57,11 +79,7 @@ public class PlayerMovement : MonoBehaviour
         movementInput = value.Get<Vector2>();
     }
     
-    /// <summary>
-    /// This method is called by the new Input System when the look action is triggered.
-    /// It reads the mouse position from the input system.
-    /// </summary>
-    /// <param name="value">The input value from the Input System.</param>
+    // The OnLook method is no longer needed since we are directly reading the mouse position in FixedUpdate.
 
     /// <summary>
     /// This method is called by the new Input System when the shoot action is triggered.
@@ -104,12 +122,20 @@ public class PlayerMovement : MonoBehaviour
         rb.linearVelocity = movementInput * speed;
 
         // Rotate the player to face the mouse position.
-        Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-        Vector3 directionToMouse = mousePositionInWorld - transform.position;
-        float angle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg - 90f;
-        
-        // Use the Rigidbody2D's rotation property for smooth, physics-aware rotation.
-        rb.rotation = angle;
+        if (Camera.main != null)
+        {
+            // Directly read the mouse position from the Input System.
+            Vector3 mousePosition = Mouse.current.position.ReadValue();
+
+            // Correctly convert the screen-space mouse position to a world-space position.
+            Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, transform.position.z - Camera.main.transform.position.z));
+            
+            Vector3 directionToMouse = mousePositionInWorld - transform.position;
+            float angle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg - 90f;
+            
+            // Use the Rigidbody2D's rotation property for smooth, physics-aware rotation.
+            rb.rotation = angle;
+        }
     }
 
     /// <summary>
