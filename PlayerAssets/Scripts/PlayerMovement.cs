@@ -62,8 +62,6 @@ public class PlayerMovement : MonoBehaviour
         rb.linearVelocity = movementInput * speed;
     }
 
-    float Val = 0;
-
     /// <summary>
     /// This method is called when this object's collider starts touching another collider.
     /// It's used to apply a physics-based push force upon collision.
